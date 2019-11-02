@@ -5,12 +5,63 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/urfave/cli"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 )
 
-func init() {
+func addFileToZip(zipWriter *zip.Writer, filename string) error {
+
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	// Get the file information
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	// Using FileInfoHeader() above only uses the basename of the file. If we want
+	// to preserve the folder structure we can overwrite this with the full path.
+	header.Name = filename
+
+	// Change to deflate to gain better compression
+	// see http://golang.org/pkg/archive/zip/#pkg-constants
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, fileToZip)
+	return err
+}
+
+func getFiles(suiteFName string) ([]string, error) {
+	var testFiles []string
+	suiteFile, err := os.Open(suiteFName)
+	if err != nil {
+		return testFiles, err
+	}
+
+	scanner := bufio.NewScanner(suiteFile)
+	for scanner.Scan() {
+		test := scanner.Text()
+		testFiles = append(testFiles, test+".in")
+		testFiles = append(testFiles, test+".out")
+		testFiles = append(testFiles, test+".args")
+	}
+
+	return testFiles, suiteFile.Close()
 }
 
 func main() {
@@ -100,13 +151,20 @@ func main() {
 		z := zipFile != ""
 		u := unzipFile != ""
 
+		var suiteFile string
+		var testFiles []string
+
 		// TODO allow for unzip then any of runSuite and remove
 		valid := help || (c.NArg() == 1 && (g || p || r || rm || z)) || (c.NArg() == 0 && u)
+
 		if !valid {
 			cli.ShowAppHelpAndExit(c, 1)
 		}
 
-		suiteFile := c.Args()[0]
+		if c.NArg() == 1 {
+			suiteFile = c.Args()[0]
+			testFiles, _ = getFiles(suiteFile)
+		}
 
 		if help {
 			cli.ShowAppHelpAndExit(c, 0)
@@ -123,7 +181,7 @@ func main() {
 		if r {
 			out, err := exec.Command("runSuite", testExec, suiteFile).CombinedOutput()
 			fmt.Print(out)
-			if err != nil{
+			if err != nil {
 				log.Fatalln(err)
 			}
 		}
@@ -135,7 +193,11 @@ func main() {
 			}
 			writer := zip.NewWriter(newFile)
 
-			// files go here
+			for _, file := range testFiles {
+				if err = addFileToZip(writer, file); err != nil {
+					log.Fatalln(err)
+				}
+			}
 
 			err = writer.Close()
 			if err != nil {
@@ -143,29 +205,12 @@ func main() {
 			}
 		}
 		if u {
+
 		}
 		if rm {
 			fmt.Println("Removing...")
-			suite, err := os.Open(suiteFile)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			scanner := bufio.NewScanner(suite)
-			for scanner.Scan(){
-				test := scanner.Text()
-				_ = os.Remove(test + ".in")
-				_ = os.Remove(test + ".out")
-				_ = os.Remove(test + ".args")
-			}
-
-			err = suite.Close()
-			if err != nil {
-				log.Println(err)
-			}
-			err = os.Remove(suiteFile)
-			if err != nil {
-				log.Println(err)
+			for _, file := range testFiles {
+				_ = os.Remove(file)
 			}
 		}
 	}
