@@ -136,7 +136,11 @@ func main() {
 			cli.ShowAppHelpAndExit(c, 0)
 		}
 		if g {
-			fmt.Println("In progress, not yet functional...")
+			out, err := exec.Command("generateFiles", genFile, suiteFile).CombinedOutput()
+			fmt.Print(out)
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}
 		if p {
 			out, err := exec.Command("produceOutputs", refExec, suiteFile).CombinedOutput()

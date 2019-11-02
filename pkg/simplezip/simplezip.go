@@ -58,7 +58,7 @@ func ZipFiles(zipName string, files []string) error {
 			return err
 		}
 	}
-
+	return nil
 }
 
 

@@ -1,6 +1,7 @@
 # Go parameters
 GOCMD=go
 GOBUILD=$(GOCMD) build
+GOINSTALL=$(GOCMD) install
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
@@ -10,7 +11,8 @@ all: build
 
 build:
 	$(GOBUILD) $(MAIN_DIR)
-
+install:
+	$(GOINSTALL) $(MAIN_DIR)
 test:
 	$(GOTEST) -v ./...
 
