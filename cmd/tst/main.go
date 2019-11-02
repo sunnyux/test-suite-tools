@@ -1,9 +1,13 @@
 package main
 
 import (
+	"archive/zip"
+	"bufio"
 	"fmt"
 	"github.com/urfave/cli"
+	"log"
 	"os"
+	"os/exec"
 )
 
 func init() {
@@ -12,9 +16,15 @@ func init() {
 func main() {
 	// Variables to Store Flag Values
 	//==================================================================================================================
-	var help, rm bool
+	genFile := ""
+	refExec := ""
+	testExec := ""
+	zipFile := ""
+	unzipFile := ""
+	rm := false
+	help := false
 	//==================================================================================================================
-	
+
 	// App Creation - This is all that is needed
 	//==================================================================================================================
 	app := cli.NewApp()
@@ -47,24 +57,33 @@ func main() {
 	//==================================================================================================================
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "produce-outputs, p",
-			Usage: "Produce test outputs based on `EXEC`",
+			Name:        "generate-tests, g",
+			Usage:       "Generates test files based on `GENFILE`",
+			Destination: &genFile,
 		},
 		cli.StringFlag{
-			Name:  "run-suite, r",
-			Usage: "Run test suite on `EXEC`",
+			Name:        "produce-outputs, p",
+			Usage:       "Produce test outputs based on `EXEC`",
+			Destination: &refExec,
 		},
 		cli.StringFlag{
-			Name:  "zip, z",
-			Usage: "Zip test suite to `ZIPFILE`",
+			Name:        "run-suite, r",
+			Usage:       "Run test suite on `EXEC`",
+			Destination: &testExec,
+		},
+		cli.StringFlag{
+			Name:        "zip, z",
+			Usage:       "Zip test suite to `ZIPFILE`",
+			Destination: &zipFile,
 		},
 		cli.StringFlag{
 			Name:        "unzip, u",
 			Usage:       "Unzip test suite from `ZIPFILE`",
+			Destination: &unzipFile,
 		},
 		cli.BoolFlag{
-			Name:  "remove, rm",
-			Usage: "Remove test suite",
+			Name:        "remove, rm",
+			Usage:       "Remove test suite",
 			Destination: &rm,
 		},
 		cli.HelpFlag,
@@ -73,17 +92,85 @@ func main() {
 
 	// App Action - Add basic app behaviour
 	//==================================================================================================================
+	// add "fallthrough" at bottom of case to fallthrough to next one
 	app.Action = func(c *cli.Context) {
-		switch {
-		case rm:
-			fmt.Println("Removing...")
-		case help:
-			cli.ShowAppHelpAndExit(c, 0)
-		default:
+		g := genFile != ""
+		p := refExec != ""
+		r := testExec != ""
+		z := zipFile != ""
+		u := unzipFile != ""
+
+		// TODO allow for unzip then any of runSuite and remove
+		valid := help || (c.NArg() == 1 && (g || p || r || rm || z)) || (c.NArg() == 0 && u)
+		if !valid {
 			cli.ShowAppHelpAndExit(c, 1)
 		}
-		fmt.Println("Done!")
+
+		suiteFile := c.Args()[0]
+
+		if help {
+			cli.ShowAppHelpAndExit(c, 0)
+		}
+		if g {
+		}
+		if p {
+			out, err := exec.Command("produceOutputs", refExec, suiteFile).CombinedOutput()
+			fmt.Print(out)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+		if r {
+			out, err := exec.Command("runSuite", testExec, suiteFile).CombinedOutput()
+			fmt.Print(out)
+			if err != nil{
+				log.Fatalln(err)
+			}
+		}
+		if z {
+			_ = os.Remove(zipFile)
+			newFile, err := os.Create(zipFile)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			writer := zip.NewWriter(newFile)
+
+			// files go here
+
+			err = writer.Close()
+			if err != nil {
+				log.Println(writer)
+			}
+		}
+		if u {
+		}
+		if rm {
+			fmt.Println("Removing...")
+			suite, err := os.Open(suiteFile)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			scanner := bufio.NewScanner(suite)
+			for scanner.Scan(){
+				test := scanner.Text()
+				_ = os.Remove(test + ".in")
+				_ = os.Remove(test + ".out")
+				_ = os.Remove(test + ".args")
+			}
+
+			err = suite.Close()
+			if err != nil {
+				log.Println(err)
+			}
+			err = os.Remove(suiteFile)
+			if err != nil {
+				log.Println(err)
+			}
+		}
 	}
+	fmt.Println("Done!")
+
 	//==================================================================================================================
 
 	// App Run - This is it
@@ -91,7 +178,7 @@ func main() {
 	err := app.Run(os.Args)
 	// Only run if something real weird happens
 	if err != nil {
-		//log.Fatalln(err)
+		log.Fatalln(err)
 	}
 	//==================================================================================================================
 }
