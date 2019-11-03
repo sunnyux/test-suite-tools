@@ -42,7 +42,7 @@ func addFileToZip(zipWriter *zip.Writer, filename string) error {
 	return err
 }
 
-// Creates a new zip file with zipName and zips files into it.
+// ZipFiles creates a new zip file with zipName and zips files into it.
 // ONLY WORKS IF zipName DOES NOT ALREADY EXIST
 func ZipFiles(zipName string, files []string) error {
 	zipFile, err := os.Create(zipName)
@@ -53,14 +53,13 @@ func ZipFiles(zipName string, files []string) error {
 	writer := zip.NewWriter(zipFile)
 	defer writer.Close()
 
-	for _, file := range files{
+	for _, file := range files {
 		if err := addFileToZip(writer, file); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-
 
 func copyFileFromZip(zipReader *zip.ReadCloser, f *zip.File) error {
 	// Make File
@@ -87,6 +86,7 @@ func copyFileFromZip(zipReader *zip.ReadCloser, f *zip.File) error {
 	return nil
 }
 
+// UnzipHere unzips files from zipFile into current directory.
 func UnzipHere(zipFile string) error {
 	reader, err := zip.OpenReader(zipFile)
 	defer reader.Close()

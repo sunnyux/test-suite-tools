@@ -10,8 +10,6 @@ import (
 	"test-suite-tools/pkg/simplezip"
 )
 
-
-
 func getFiles(suiteFName string) ([]string, error) {
 	testFiles := []string{"suiteFName"}
 	suiteFile, err := os.Open(suiteFName)
@@ -52,11 +50,11 @@ func main() {
 	app.Name = "Test Suite Tools"
 	app.Usage = "A set of tools to make CS 246 test suite creation and usage easier."
 	app.Authors = []cli.Author{
-		cli.Author{
+		{
 			Name:  "Matthew Froggatt",
 			Email: "",
 		},
-		cli.Author{
+		{
 			Name:  "Sunny Xie",
 			Email: "",
 		},
