@@ -6,6 +6,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 MAIN_DIR=test-suite-tools/cmd/tst
+DEPS=github.com/urfave/cli
 
 all: build
 
@@ -15,6 +16,9 @@ install:
 	$(GOINSTALL) $(MAIN_DIR)
 test:
 	$(GOTEST) -v ./...
+
+get:
+	$(GOGET) $(DEPS)
 
 clean:
 	$(GOCLEAN)
