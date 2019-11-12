@@ -11,7 +11,7 @@ import (
 )
 
 func getFiles(suiteFName string) ([]string, error) {
-	testFiles := []string{"suiteFName"}
+	testFiles := []string{suiteFName}
 	suiteFile, err := os.Open(suiteFName)
 	if err != nil {
 		return testFiles, err
@@ -97,7 +97,7 @@ func main() {
 			Destination: &unzipFile,
 		},
 		cli.BoolFlag{
-			Name:        "remove, rm",
+			Name:        "remove, rm, delete, d",
 			Usage:       "Remove test suite",
 			Destination: &rm,
 		},
@@ -127,39 +127,48 @@ func main() {
 
 		if c.NArg() == 1 {
 			suiteFile = c.Args()[0]
-			testFiles, _ = getFiles(suiteFile)
 		}
 
 		if help {
 			cli.ShowAppHelpAndExit(c, 0)
 		}
 		if g {
-			out, err := exec.Command("generateFiles", genFile, suiteFile).CombinedOutput()
-			fmt.Print(out)
+			fmt.Println("Generating...")
+			out, err := exec.Command("generateFiles", suiteFile, genFile).CombinedOutput()
+			fmt.Print(string(out))
 			if err != nil {
 				log.Fatalln(err)
 			}
 		}
+
+		if c.NArg() == 1 && (z || rm) {
+			testFiles, _ = getFiles(suiteFile)
+		}
+
 		if p {
-			out, err := exec.Command("produceOutputs", refExec, suiteFile).CombinedOutput()
-			fmt.Print(out)
+			fmt.Println("Running...")
+			out, err := exec.Command("produceOutputs", suiteFile, refExec).CombinedOutput()
+			fmt.Print(string(out))
 			if err != nil {
 				log.Fatalln(err)
 			}
 		}
 		if r {
-			out, err := exec.Command("runSuite", testExec, suiteFile).CombinedOutput()
-			fmt.Print(out)
+			fmt.Println("Testing...")
+			out, err := exec.Command("runSuite", suiteFile, testExec).CombinedOutput()
+			fmt.Print(string(out))
 			if err != nil {
 				log.Fatalln(err)
 			}
 		}
 		if z {
+			fmt.Println("Zipping...")
 			if err := simplezip.ZipFiles(zipFile, testFiles); err != nil {
 				log.Fatalln(err)
 			}
 		}
 		if u {
+			fmt.Println("Unzipping...")
 			if err := simplezip.UnzipHere(unzipFile); err != nil {
 				log.Fatalln(err)
 			}
@@ -170,14 +179,15 @@ func main() {
 				_ = os.Remove(file)
 			}
 		}
+
 	}
-	fmt.Println("Done!")
 
 	//==================================================================================================================
 
 	// App Run - This is it
 	//==================================================================================================================
 	err := app.Run(os.Args)
+	fmt.Println("Done!")
 	// Only run if something real weird happens
 	if err != nil {
 		log.Fatalln(err)
