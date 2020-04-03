@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"test-suite-tools/pkg/simplezip"
+	"test-suite-tools/pkg/tools"
 )
 
 func getFiles(suiteFName string) ([]string, error) {
@@ -71,9 +71,19 @@ func main() {
 	// Argument Definitions - Need to add flags and positional arguments
 	//==================================================================================================================
 	app.Flags = []cli.Flag{
+		// TODO rewrite stuff
 		cli.StringFlag{
-			Name:        "generate-tests, g",
-			Usage:       "Generates test files based on `GENFILE`",
+			Name:  "generate-tests, g",
+			Usage: "Generates test files based on `GENFILE`",
+			/* the file will be formatted as
+			===
+			name_of_the_test_case
+			---
+			[argument1 argument2 ...]
+			---
+			[content for the .in file]
+			===
+			*/
 			Destination: &genFile,
 		},
 		cli.StringFlag{
@@ -117,34 +127,41 @@ func main() {
 
 		var suiteFile string
 		var testFiles []string
+		var firstDelim string
+		var secDelim string
 
 		// TODO allow for unzip then any of runSuite and remove
-		valid := help || (c.NArg() == 1 && (g || p || r || rm || z)) || (c.NArg() == 0 && u)
+		valid := help || (c.NArg() == 1 && (g || p || r || rm || z)) || (c.NArg() == 0 && u) || (c.NArg() == 3 && g)
 
 		if !valid {
 			cli.ShowAppHelpAndExit(c, 1)
 		}
 
-		if c.NArg() == 1 {
+		if c.NArg() == 1 || c.NArg() == 3 {
 			suiteFile = c.Args()[0]
-		}
-
-		if help {
-			cli.ShowAppHelpAndExit(c, 0)
-		}
-		if g {
-			fmt.Println("Generating...")
-			out, err := exec.Command("generateFiles", suiteFile, genFile).CombinedOutput()
-			fmt.Print(string(out))
-			if err != nil {
-				log.Fatalln(err)
-			}
 		}
 
 		if c.NArg() == 1 && (z || rm) {
 			testFiles, _ = getFiles(suiteFile)
 		}
 
+		if help {
+			cli.ShowAppHelpAndExit(c, 0)
+		}
+
+		if g {
+			fmt.Println("Generating...")
+			if c.NArg() == 1 {
+				firstDelim = "===\n"
+				secDelim = "---\n"
+			} else if c.NArg() == 3 {
+				firstDelim = c.Args()[1] + "\n"
+				secDelim = c.Args()[2] + "\n"
+			}
+			if err := tools.GenerateFiles(genFile, suiteFile, firstDelim, secDelim); err != nil {
+				log.Fatalln(err)
+			}
+		}
 		if p {
 			fmt.Println("Running...")
 			out, err := exec.Command("produceOutputs", suiteFile, refExec).CombinedOutput()
@@ -163,13 +180,13 @@ func main() {
 		}
 		if z {
 			fmt.Println("Zipping...")
-			if err := simplezip.ZipFiles(zipFile, testFiles); err != nil {
+			if err := tools.ZipFiles(zipFile, testFiles); err != nil {
 				log.Fatalln(err)
 			}
 		}
 		if u {
 			fmt.Println("Unzipping...")
-			if err := simplezip.UnzipHere(unzipFile); err != nil {
+			if err := tools.UnzipHere(unzipFile); err != nil {
 				log.Fatalln(err)
 			}
 		}

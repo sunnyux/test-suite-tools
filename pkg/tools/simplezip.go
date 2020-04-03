@@ -1,4 +1,4 @@
-package simplezip
+package tools
 
 import (
 	"archive/zip"
