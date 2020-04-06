@@ -51,6 +51,7 @@ func main() {
 	//==================================================================================================================
 	app.Name = "Test Suite Tools"
 	app.Usage = "A set of tools to make CS 246 test suite creation and usage easier."
+	app.Description = "Provide the name of the suite file (suite_file.txt) as the argument for the command to facilitate test creation and usage."
 	app.Authors = []cli.Author{
 		{
 			Name:  "Matthew Froggatt",
@@ -76,7 +77,7 @@ func main() {
 		// TODO rewrite stuff
 		cli.StringFlag{
 			Name:        "generate-tests, g",
-			Usage:       "Generates test files based on the specially formatted `GENFILE` with default delimiters",
+			Usage:       "Generates test files based on the specially formatted `GENFILE`",
 			Destination: &genFile,
 			/* the file will be formatted as follows with the default delimiters
 			===
@@ -90,32 +91,32 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:        "separator-a, a",
-			Usage:       "Set the separator for the test file names and the content of the files for GENFILE from the default \"===\" to `SEP1`",
+			Usage:       "Set separator for each tests in GENFILE from the default \"===\" to `SEP1`",
 			Destination: &firstDelim,
 		},
 		cli.StringFlag{
 			Name:        "separator-b, b",
-			Usage:       "Set the field separator for the content of .in and .args files for GENFILE from the default \"---\" to `SEP2`",
+			Usage:       "Set separator for the content of the tests in GENFILE from \"---\" to `SEP2`",
 			Destination: &secDelim,
 		},
 		cli.StringFlag{
 			Name:        "produce-outputs, p",
-			Usage:       "Produce test outputs based on `EXEC`",
+			Usage:       "Produce outputs and create .out files for each tests based on `EXEC`",
 			Destination: &refExec,
 		},
 		cli.StringFlag{
 			Name:        "run-suite, r",
-			Usage:       "Run test suite on `EXEC`",
+			Usage:       "Run test suite on `EXEC`, report all mismatches with the expected output",
 			Destination: &testExec,
 		},
 		cli.StringFlag{
 			Name:        "zip, z",
-			Usage:       "Zip test suite to `ZIPFILE`",
+			Usage:       "Zip the suite file and all the .in, .args, and .out files to `ZIPFILE`",
 			Destination: &zipFile,
 		},
 		cli.StringFlag{
 			Name:        "unzip, u",
-			Usage:       "Unzip test suite from `ZIPFILE`",
+			Usage:       "Unzip `ZIPFILE`",
 			Destination: &unzipFile,
 		},
 		cli.BoolFlag{
