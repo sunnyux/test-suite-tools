@@ -36,6 +36,8 @@ func main() {
 	testExec := ""
 	zipFile := ""
 	unzipFile := ""
+	firstDelim := "==="
+	secDelim := "---"
 	rm := false
 	help := false
 	//==================================================================================================================
@@ -73,9 +75,10 @@ func main() {
 	app.Flags = []cli.Flag{
 		// TODO rewrite stuff
 		cli.StringFlag{
-			Name:  "generate-tests, g",
-			Usage: "Generates test files based on `GENFILE`",
-			/* the file will be formatted as
+			Name:        "generate-tests, g",
+			Usage:       "Generates test files based on the specially formatted `GENFILE` with default delimiters",
+			Destination: &genFile,
+			/* the file will be formatted as follows with the default delimiters
 			===
 			name_of_the_test_case
 			---
@@ -84,7 +87,16 @@ func main() {
 			[content for the .in file]
 			===
 			*/
-			Destination: &genFile,
+		},
+		cli.StringFlag{
+			Name:        "separator-a, a",
+			Usage:       "Set the separator for the test file names and the content of the files for GENFILE from the default \"===\" to `SEP1`",
+			Destination: &firstDelim,
+		},
+		cli.StringFlag{
+			Name:        "separator-b, b",
+			Usage:       "Set the field separator for the content of .in and .args files for GENFILE from the default \"---\" to `SEP2`",
+			Destination: &secDelim,
 		},
 		cli.StringFlag{
 			Name:        "produce-outputs, p",
@@ -124,20 +136,20 @@ func main() {
 		r := testExec != ""
 		z := zipFile != ""
 		u := unzipFile != ""
+		a := firstDelim != ""
+		b := secDelim != ""
 
 		var suiteFile string
 		var testFiles []string
-		var firstDelim string
-		var secDelim string
 
 		// TODO allow for unzip then any of runSuite and remove
-		valid := help || (c.NArg() == 1 && (g || p || r || rm || z)) || (c.NArg() == 0 && u) || (c.NArg() == 3 && g)
+		valid := help || (c.NArg() == 1 && (g || p || r || rm || z || (g && a) || (g && a && b))) || (c.NArg() == 0 && u)
 
 		if !valid {
 			cli.ShowAppHelpAndExit(c, 1)
 		}
 
-		if c.NArg() == 1 || c.NArg() == 3 {
+		if g || p || r || rm || z {
 			suiteFile = c.Args()[0]
 		}
 
@@ -151,12 +163,15 @@ func main() {
 
 		if g {
 			fmt.Println("Generating...")
-			if c.NArg() == 1 {
+			if a {
+				firstDelim += "\n"
+			} else {
 				firstDelim = "===\n"
+			}
+			if b {
+				secDelim += "\n"
+			} else {
 				secDelim = "---\n"
-			} else if c.NArg() == 3 {
-				firstDelim = c.Args()[1] + "\n"
-				secDelim = c.Args()[2] + "\n"
 			}
 			if err := tools.GenerateFiles(genFile, suiteFile, firstDelim, secDelim); err != nil {
 				log.Fatalln(err)
